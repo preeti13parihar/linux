@@ -1099,6 +1099,14 @@ bool kvm_cpuid(struct kvm_vcpu *vcpu, u32 *eax, u32 *ebx,
 }
 EXPORT_SYMBOL_GPL(kvm_cpuid);
 
+
+
+
+/* *****My Code for Assignment2 Functionality starts here***** */
+
+atomic_long_t exits=ATOMIC_INIT(0);
+atomic64_t cycles_spent_in_exit=ATOMIC64_INIT(0);
+
 int kvm_emulate_cpuid(struct kvm_vcpu *vcpu)
 {
 	u32 eax, ebx, ecx, edx;
@@ -1108,11 +1116,35 @@ int kvm_emulate_cpuid(struct kvm_vcpu *vcpu)
 
 	eax = kvm_rax_read(vcpu);
 	ecx = kvm_rcx_read(vcpu);
+
+	
+	if( eax == 0x4FFFFFFF){
+		eax = atomic_long_read(&exits);
+		ebx = (atomic64_read(&cycles_spent_in_exit) >> 32)&0xffffffff;
+		ecx = (atomic64_read(&cycles_spent_in_exit)&0xffffffff);
+		edx = 0;
+
+	kvm_rax_write(vcpu, eax);	
+	kvm_rbx_write(vcpu, ebx);
+	kvm_rcx_write(vcpu, ecx);
+	kvm_rdx_write(vcpu, edx);
+	kvm_cpuid(vcpu, &eax, &ebx, &ecx, &edx, false);
+	
+	}
+	
+	else{	
+      
 	kvm_cpuid(vcpu, &eax, &ebx, &ecx, &edx, false);
 	kvm_rax_write(vcpu, eax);
 	kvm_rbx_write(vcpu, ebx);
 	kvm_rcx_write(vcpu, ecx);
 	kvm_rdx_write(vcpu, edx);
+	}
+	
 	return kvm_skip_emulated_instruction(vcpu);
 }
+
+
+EXPORT_SYMBOL(exits);
+EXPORT_SYMBOL(cycles_spent_in_exit);
 EXPORT_SYMBOL_GPL(kvm_emulate_cpuid);
